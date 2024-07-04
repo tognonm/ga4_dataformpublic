@@ -1,36 +1,15 @@
 config {
-    type: "table",
-    schema: "dataform_sources",
+type: "table",
+schema: "dataform_sources",
 }
 
 SELECT
-    event_timestamp,
-    user_pseudo_id,
-    (
-        SELECT
-            ep.value.string_value
-        FROM
-        UNNEST(event_params) ep
-        WHERE
-            ep.key = 'page_location' 
-    ) AS page_location,
-    (
-        SELECT
-            ep.value.string_value
-        FROM
-        UNNEST(event_params) ep
-        WHERE
-            ep.key = 'page_referrer' 
-    ) AS page_referrer,
-    (
-        SELECT
-            ep.value.int_value
-        FROM
-        UNNEST(event_params) ep
-        WHERE
-            ep.key = 'ga_session_id' 
-    ) AS ga_session_id,
+event_timestamp,
+user_pseudo_id,
+${helpers.getEventParam('page_location')},
+${helpers.getEventParam('page_referrer')},
+${helpers.getEventParam('ga_session_id','int')},
 FROM
-${ref(constant.GA4_TABLE)}
+${ref(constants.GA4_TABLE)}
 WHERE
 event_name = 'page_view'
