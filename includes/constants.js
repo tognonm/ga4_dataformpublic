@@ -1,4 +1,4 @@
-const GA4_DATABASE = 'second-drake-392111';
-const GA4_DATASET = 'analytics_397058758';
-const GA4_TABLE = 'events_20240225';
+const GA4_DATABASE = 'your_project';
+const GA4_DATASET = 'your_analytics_dataset';
+const GA4_TABLE = 'events_*';
 module.exports = {GA4_DATABASE, GA4_DATASET, GA4_TABLE}

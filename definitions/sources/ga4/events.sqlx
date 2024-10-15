@@ -1,0 +1,87 @@
+config {
+    type: "incremental",
+    schema: "dataform_sources",
+    tags: ["your_tag"],
+    description: "GA4 source model. Column casting, value extractions and events flattening made here",
+    bigquery: {
+        partitionBy: "event_date",
+        clusterBy: ["event_name"]
+    }
+}
+
+js {
+    const test = false;
+
+    const startDate = test ? `current_date()-5` : `date_checkpoint`;
+    const endDate = 'current_date()';
+
+    // Daily and intraday export tables
+    const dateFilter = `(_table_suffix >= cast(${startDate} as string format "YYYYMMDD") and _table_suffix <= cast(${endDate} as string format "YYYYMMDD"))`;
+    const allFilter = `1 = 1`;
+}
+
+SELECT
+    CONCAT(${helpers.getEventParam_noalias('ga_session_id', 'int')}, user_pseudo_id) AS session_id,
+    user_pseudo_id,
+    ${helpers.getEventParam('ga_session_id', "int")},
+    ${helpers.getEventParam_noalias('custom_timestamp', "int")} as event_timestamp,
+  IF
+    ( DATE_DIFF(CURRENT_DATE(), CAST(event_date AS DATE format 'YYYYMMDD'), DAY) > 3, TRUE, FALSE) AS data_is_final,
+    event_name,
+    CAST(event_date AS date format 'YYYYMMDD') AS event_date,
+    platform,
+    ${helpers.getEventParam('page_title')},
+    ${helpers.getEventParam('page_referrer')},
+    ${helpers.getEventParam('page_location')},
+  (
+  SELECT
+    AS STRUCT traffic_source.source AS source,
+    traffic_source.medium AS medium,
+    traffic_source.name AS campaign ) AS traffic_source,
+  -- Collected traffic source
+  (
+SELECT
+  AS STRUCT collected_traffic_source.manual_source AS source,
+  collected_traffic_source.manual_medium AS medium,
+  collected_traffic_source.manual_campaign_name AS campaign,
+  collected_traffic_source.gclid AS gclid) AS manual_traffic_source,
+  (
+  SELECT
+    AS STRUCT session_traffic_source_last_click.manual_campaign.source AS source,
+    session_traffic_source_last_click.manual_campaign.medium AS medium,
+    session_traffic_source_last_click.manual_campaign.campaign_name AS campaign ) AS lastclick_traffic_source,
+  -- Device info
+  STRUCT( device.category,
+    device.mobile_brand_name,
+    device.mobile_model_name,
+    device.mobile_marketing_name,
+    device.mobile_os_hardware_model,
+    device.operating_system,
+    device.operating_system_version) AS device
+FROM
+  ${ref(constants.GA4_TABLE)}
+  -- Incremental settings
+  ${when(incremental(), `WHERE ${dateFilter}`)} ${when(!incremental(), `WHERE ${allFilter}`)}
+
+
+pre_operations {
+  -- date checkpoint is based on the latest date that had "final" data
+  DECLARE
+    date_checkpoint DEFAULT (
+    ${
+        when(incremental(),
+            `select max(event_date)+1 from ${self()} where data_is_final = true`,
+            `select date_trunc(current_date(), year)`
+        )
+    }
+    )
+
+  ---
+
+    -- delete rows that are about to be added again through the incremental refresh
+    ${
+        when(incremental(),
+            `delete from ${self()} where event_date >= date_checkpoint`
+        )
+    }
+}

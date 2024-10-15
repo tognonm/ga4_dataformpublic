@@ -1,0 +1,50 @@
+config {
+    type: "incremental",
+    schema: "dataform_staging",
+    tags: ["your_tag"],
+    bigquery: {
+        partitionBy: "event_date",
+        clusterBy: ["page_location"]
+    }
+}
+
+js {
+  const { getIncrementalFilters } = helpers;
+  const { startDate, endDate, dateFilter, allFilter } = getIncrementalFilters(false);
+}
+
+SELECT
+  event_timestamp,
+  DATETIME(TIMESTAMP_MICROS(event_timestamp), "Europe/Rome") AS event_timestamp_time,
+  event_date,
+  data_is_final,
+  session_id,
+  user_pseudo_id,
+  page_location,
+  page_referrer
+FROM
+  ${ref(constants.GA4_TABLE)}
+WHERE
+  event_name = 'page_view'
+  ${when(incremental(), `AND ${dateFilter}`)} ${when(!incremental(), `AND ${allFilter}`)}
+
+pre_operations {
+  DECLARE
+    date_checkpoint DEFAULT (
+    ${
+        when(incremental(),
+            `select max(event_date)+1 from ${self()} where data_is_final = true`,
+            `select date_trunc(current_date(), year)`
+        )
+    }
+    )
+
+
+
+    
+    ${
+        when(incremental(),
+            `delete from ${self()} where event_date >= date_checkpoint`
+        )
+    }
+}
