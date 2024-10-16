@@ -1,0 +1,17 @@
+config {
+    type: "table",
+    schema: "dataform_intermediate",
+     description: "Daily table with pageviews.",
+     tags:["your_tag"],
+    bigquery: {
+        partitionBy: "event_date"
+    }
+}
+
+SELECT
+  event_date,
+  COUNT(*) AS event_count
+FROM
+  ${ref('pageview')}
+GROUP BY 
+  1
