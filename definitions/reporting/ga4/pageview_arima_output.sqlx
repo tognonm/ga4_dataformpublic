@@ -1,0 +1,64 @@
+config {
+    type: "table",
+    schema: "dataform_reporting",
+    description: "ARIMA anomalies output. Old data + forecasted ones for reporting issues",
+    tags: ["your_tag"],
+    bigquery: {
+        partitionBy: "event_date"
+    }
+}
+
+WITH
+  anomalies AS (
+  SELECT
+    DATE(event_date) AS event_date,
+    event_count,
+    is_anomaly,
+    lower_bound,
+    upper_bound,
+    anomaly_probability
+  FROM 
+      ML.DETECT_ANOMALIES ( MODEL `your_project.dataform_reporting.pageview_arima_production`,
+        STRUCT(0.95 AS anomaly_prob_threshold)) ),
+  forecast AS (
+  SELECT
+    DATE(forecast_timestamp) AS event_date,
+    forecast_value AS event_count,
+    FALSE AS is_anomaly,
+    prediction_interval_lower_bound AS lower_bound,
+    prediction_interval_upper_bound AS upper_bound,
+    NULL AS anomaly_probability
+  FROM
+    ML.FORECAST(MODEL `your_project.dataform_reporting.pageview_arima_production`,
+             STRUCT(30 AS horizon, 0.8 AS confidence_level))
+  )
+SELECT
+  *
+FROM
+  anomalies
+UNION ALL 
+SELECT
+  *
+FROM
+  forecast
+
+
+pre_operations {
+  CREATE OR REPLACE MODEL
+    `your_project.dataform_reporting.pageview_arima_production` OPTIONS ( MODEL_TYPE = 'ARIMA_PLUS',
+      TIME_SERIES_TIMESTAMP_COL = 'event_date',
+      TIME_SERIES_DATA_COL = 'event_count',
+      DATA_FREQUENCY = 'DAILY',
+      CLEAN_SPIKES_AND_DIPS = TRUE,
+      HORIZON = 30,
+      ADJUST_STEP_CHANGES = TRUE,
+      AUTO_ARIMA = TRUE,
+      SEASONALITIES = ['AUTO'] ) AS (
+      -- Define training data
+      training_data AS (
+    SELECT
+      event_date,
+      event_count
+    FROM
+      ${ref('pageview_daily')} ));
+}
