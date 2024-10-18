@@ -9,5 +9,5 @@ SELECT
 FROM
   ${ref("pageview_arima_output")}
 WHERE
-  event_date = DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
+  event_date BETWEEN(DATE_SUB(CURRENT_DATE(), INTERVAL 8 DAY)) AND CURRENT_DATE()
   AND is_anomaly = TRUE
