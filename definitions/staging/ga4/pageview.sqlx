@@ -23,7 +23,7 @@ SELECT
   page_location,
   page_referrer
 FROM
-  ${ref(constants.GA4_TABLE)}
+  ${ref('events')}
 WHERE
   event_name = 'page_view'
   ${when(incremental(), `AND ${dateFilter}`)} ${when(!incremental(), `AND ${allFilter}`)}

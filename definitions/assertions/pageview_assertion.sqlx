@@ -1,0 +1,13 @@
+config {
+  type: "assertion",
+  tags: ["your_tag"],
+  schema:"dataform_assertions"
+}
+
+SELECT
+  *
+FROM
+  ${ref("pageview_arima_output")}
+WHERE
+  event_date = DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)
+  AND is_anomaly = TRUE
