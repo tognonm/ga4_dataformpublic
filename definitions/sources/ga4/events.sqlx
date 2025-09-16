@@ -57,7 +57,15 @@ SELECT
     device.mobile_marketing_name,
     device.mobile_os_hardware_model,
     device.operating_system,
-    device.operating_system_version) AS device
+    device.operating_system_version) AS device,
+  STRUCT( ${helpers.getItemNames('items', 'item_id')},
+  ${helpers.getItemNames('items', 'item_variant')},
+  ${helpers.getItemNames('items', 'item_name')},
+  ${helpers.getItemNames('items', 'item_category')},
+  ${helpers.getItemNames('items', 'item_category2')},
+  ${helpers.getItemNames('items', 'item_category3')},
+  ${helpers.getItemNames('items', 'item_category4')},
+  ${helpers.getItemNames('items', 'item_category5')}) AS items
 FROM
   ${ref(constants.GA4_TABLE)}
   -- Incremental settings
@@ -84,4 +92,5 @@ pre_operations {
             `delete from ${self()} where event_date >= date_checkpoint`
         )
     }
+
 }
