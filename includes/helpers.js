@@ -58,6 +58,12 @@ const getIncrementalFilters = (test = false) => {
     const allFilter = `(1 = 1)`;
 
     return { startDate, endDate, dateFilter, allFilter };
-}
+};
 
-module.exports = {getEventParam, getEventParam_noalias, getIncrementalFilters}
+const getItemNames = (itemsField, fieldName) => {
+    return `(SELECT STRING_AGG(${fieldName}, ', ') 
+          FROM UNNEST(${itemsField}) AS item) AS ${fieldName}`;
+};
+
+
+module.exports = {getEventParam, getEventParam_noalias, getIncrementalFilters, getItemNames}
