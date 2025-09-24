@@ -1,0 +1,11 @@
+config {
+    type: "table",
+    tags: ["your_tag"],
+    schema: "dataform_reporting",
+    description: "Table with assertion like messages."
+}
+
+SELECT
+  *
+FROM
+  ${ref("addtocart_checks")}
