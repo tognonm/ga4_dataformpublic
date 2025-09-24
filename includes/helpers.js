@@ -65,5 +65,14 @@ const getItemNames = (itemsField, fieldName) => {
           FROM UNNEST(${itemsField}) AS item) AS ${fieldName}`;
 };
 
+const getAssertionLabel = (x, k, y, z) => {
+    return `
+    '${x}' AS assertion_message,
+    '${k}' AS event_name,
+    '${y}' AS assertion_label,
+    '${z}' AS previous_days_checked
+    `;
+};
 
 module.exports = {getEventParam, getEventParam_noalias, getIncrementalFilters, getItemNames}
+
