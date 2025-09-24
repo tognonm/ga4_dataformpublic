@@ -1,0 +1,41 @@
+config {
+    type: "view",
+    tags: ["your_tag"],
+    schema: "dataform_intermediate",
+    description: "Check for price and quantity of items added to cart."
+}
+
+WITH
+  price AS (
+  SELECT
+    event_date,
+    COUNT(*) AS event_count
+  FROM
+    ${ref("addtocart")}
+  WHERE
+    event_date = CURRENT_DATE - 1
+    AND price <= 0
+  GROUP BY
+    event_date),
+  quantity AS (
+  SELECT
+    event_date,
+    COUNT(*) AS event_count
+  FROM
+    ${ref("addtocart")}
+  WHERE
+    event_date = CURRENT_DATE - 1
+    AND quantity <= 0
+  GROUP BY
+    event_date )
+SELECT
+  *,
+  ${helpers.getAssertionLabel('zero_value', 'addtocart', 'core', '1')}
+FROM
+  price
+UNION ALL
+SELECT
+  *,
+  ${helpers.getAssertionLabel('zero_value', 'addtocart', 'core', '1')}
+FROM
+  quantity
